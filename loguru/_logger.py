@@ -87,12 +87,13 @@ import contextlib
 import functools
 import itertools
 import logging
+import platform
 import re
 import sys
 import warnings
 from collections import namedtuple
 from inspect import isclass, iscoroutinefunction, isgeneratorfunction
-from multiprocessing import current_process, get_context
+from multiprocessing import current_process, get_context, get_start_method
 from multiprocessing.context import BaseContext
 from os.path import basename, splitext
 from threading import current_thread
@@ -967,8 +968,13 @@ class Logger:
         if not isinstance(encoding, str):
             encoding = "ascii"
 
-        if context is None or isinstance(context, str):
+        if isinstance(context, str):
             context = get_context(context)
+        elif context is None:
+            start_method = get_start_method(allow_none=True)
+            if start_method is None:
+                start_method = "fork" if platform.system() == "Linux" else "spawn"
+            context = get_context(start_method)
         elif not isinstance(context, BaseContext):
             raise TypeError(
                 "Invalid context, it should be a string or a multiprocessing context, "
